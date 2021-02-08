@@ -28,6 +28,8 @@ class Reddit:
 		self.driver.get('https://www.reddit.com/r/' + subreddit + '/')
 		sleep(3)
 
+		self.scroll_down()
+
 		images = self.driver.find_elements_by_xpath('//img')
 		for image in images:
 			src = image.get_attribute('src')
@@ -56,13 +58,13 @@ class Reddit:
 		# Get scroll height.
 		last_height = self.driver.execute_script("return document.body.scrollHeight")
 
-		while True:
+		for x in range(0, 30):
 
 			# Scroll down to the bottom.
 			self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
 			# Wait to load the page.
-			time.sleep(2)
+			sleep(5)
 
 			# Calculate new scroll height and compare with last scroll height.
 			new_height = self.driver.execute_script("return document.body.scrollHeight")
@@ -119,6 +121,8 @@ if __name__ == '__main__':
 	for newLink in scrapedLinks:
 		if newLink is not None:
 			scrapedLinksFinal += newLink
+
+	pool = mp.Pool(6)
 
 	if len(scrapedLinksFinal) > 0:
 		print('Found ' + str(len(scrapedLinksFinal)) + ' links. Now downloading them.')
