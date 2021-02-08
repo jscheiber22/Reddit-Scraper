@@ -12,15 +12,20 @@ class Reddit:
 		chrome_options = uc.ChromeOptions()
 		chrome_options.add_argument("--disable-blink-features")
 		chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-		# chrome_options.add_argument("--headless")
+		chrome_options.add_argument("--headless")
 		self.driver = uc.Chrome(options=chrome_options)
 
-	def getLinks(self):
+	def getLinks(self, subreddit):
 		links = []
 
-		self.driver.get('https://www.reddit.com/')
+		subreddit = subreddit.replace('\n', '')
+
+		used = os.listdir(dest + subreddit)
+
+		print('Opening ' + subreddit + '.\n')
+		self.driver.get('https://www.reddit.com/r/' + subreddit + '/')
 		sleep(3)
-		self.driver.get('https://www.reddit.com/')
+		self.driver.get('https://www.reddit.com/r/' + subreddit + '/')
 		sleep(3)
 
 		images = self.driver.find_elements_by_xpath('//img')
@@ -35,9 +40,11 @@ class Reddit:
 							title = title.group().replace('/comments/', '')
 							title = re.search('/.*/', title)
 							if title is not None:
-								links.append(title.group() + '...' + src)
+								if not title.group().replace('/', '') + '.jpg' in used:
+									links.append(subreddit + '###' + title.group() + '...' + src)
 
 		if len(links) > 0:
+			print('Found ' + str(len(links)) + ' in ' + subreddit + ' sub.')
 			return links
 		else:
 			print('Pulled no links :/')
@@ -67,37 +74,55 @@ class Reddit:
 			last_height = new_height
 
 
+def start(searchTerm):
+	if searchTerm is not None and searchTerm != '':
+		scraper = Reddit()
+		scrapedLinks = scraper.getLinks(searchTerm)
+		return scrapedLinks
+
 def curlLinks(link):
-	title = re.search('.*\.\.\.', link)
-	if title is not None:
-		title = title.group().replace('...', '').replace('/', '')
-		realLink = re.search('\.\.\..*', link)
-		if realLink is not None:
-			realLink = realLink.group().replace('...', '')
-			subprocess.call(['curl', realLink, '-o', dest + title + '.jpg'])
+	subreddit = re.search('.*###', link)
+	if subreddit is not None:
+		subreddit = subreddit.group().replace('###', '')
+		title = re.search('###.*\.\.\.', link)
+		if title is not None:
+			title = title.group().replace('...', '').replace('/', '').replace('###', '')
+			realLink = re.search('\.\.\..*', link)
+			if realLink is not None:
+				realLink = realLink.group().replace('...', '')
+				subprocess.call(['curl', realLink, '-o', dest + subreddit + '/' + title + '.jpg'])
 
 
 if __name__ == '__main__':
-	if '--bad' in sys.argv:
-		# dest = '/media/sf_redDrive/reddit/'
-		dest = ''
-	else:
-		dest = input('Location to download images to: ')
+	dest = '/media/sf_redDrive/reddit/'
 	scrapedLinks = []
+	scrapedLinksFinal = []
+
+	f = open('toSearch', 'r')
+	subreddits = f.readlines()
+	f.close()
+
+	for subred in subreddits:
+		subred = subred.replace('\n', '')
+		if not os.path.isdir(dest + subred):
+			os.mkdir(dest + subred)
 
 	pool = mp.Pool(3)
 
-	print('Starting browser.\n')
-	scraper = Reddit()
-	scrapedLinks = scraper.getLinks()
-	print(scrapedLinks)
+	print('Opening browsers.\n')
+	scrapedLinks = pool.map(start, subreddits)
 	if scrapedLinks is None:
 		print('Probably broken ip :/')
 		scraper.driver.close()
 		exit()
-	if len(scrapedLinks) > 0:
-		print('Found ' + str(len(scrapedLinks)) + ' links. Now downloading them.')
-		pool.map(curlLinks, scrapedLinks)
+
+	for newLink in scrapedLinks:
+		if newLink is not None:
+			scrapedLinksFinal += newLink
+
+	if len(scrapedLinksFinal) > 0:
+		print('Found ' + str(len(scrapedLinksFinal)) + ' links. Now downloading them.')
+		pool.map(curlLinks, scrapedLinksFinal)
 
 
 
