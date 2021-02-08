@@ -28,6 +28,12 @@ class Reddit:
 		self.driver.get('https://www.reddit.com/r/' + subreddit + '/')
 		sleep(3)
 
+		try:
+			self.driver.find_element_by_xpath('//button[text()="Yes"]').click()
+			sleep(3)
+		except:
+			pass
+
 		self.scroll_down()
 
 		images = self.driver.find_elements_by_xpath('//img')
@@ -58,7 +64,7 @@ class Reddit:
 		# Get scroll height.
 		last_height = self.driver.execute_script("return document.body.scrollHeight")
 
-		for x in range(0, 30):
+		for x in range(0, 200):
 
 			# Scroll down to the bottom.
 			self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
