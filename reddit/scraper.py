@@ -18,22 +18,24 @@ class Reddit:
 	def getLinks(self):
 		links = []
 
-		self.driver.get('https://www.reddit.com/r/wallstreetbets/')
+		self.driver.get('https://www.reddit.com/')
 		sleep(3)
-		self.driver.get('https://www.reddit.com/r/wallstreetbets/')
+		self.driver.get('https://www.reddit.com/')
 		sleep(3)
 
 		images = self.driver.find_elements_by_xpath('//img')
 		for image in images:
 			src = image.get_attribute('src')
-			if 'preview' in src and not 'award_images' in src:
-				title = image.find_element_by_xpath('./../../..').get_attribute('href')
-				title = re.search('/comments/.*/.*/', title)
-				if title is not None:
-					title = title.group().replace('/comments/', '')
-					title = re.search('/.*/', title)
+			if src is not None:
+				if 'preview' in src and not 'award_images' in src:
+					title = image.find_element_by_xpath('./../../..').get_attribute('href')
 					if title is not None:
-						links.append(title.group() + '...' + src)
+						title = re.search('/comments/.*/.*/', title)
+						if title is not None:
+							title = title.group().replace('/comments/', '')
+							title = re.search('/.*/', title)
+							if title is not None:
+								links.append(title.group() + '...' + src)
 
 		if len(links) > 0:
 			return links
@@ -67,10 +69,12 @@ class Reddit:
 
 def curlLinks(link):
 	title = re.search('.*\.\.\.', link)
-	title = title.replace('...', '').replace('/', '')
-	realLink = re.search('\.\.\..*')
-	realLink = realLink.replace('...', '')
-	subprocess.call(['curl', link, '-o', dest + title + '.jpg'])
+	if title is not None:
+		title = title.group().replace('...', '').replace('/', '')
+		realLink = re.search('\.\.\..*', link)
+		if realLink is not None:
+			realLink = realLink.group().replace('...', '')
+			subprocess.call(['curl', realLink, '-o', dest + title + '.jpg'])
 
 
 if __name__ == '__main__':
