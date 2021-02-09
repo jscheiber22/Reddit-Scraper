@@ -16,6 +16,9 @@ class Reddit:
 		self.driver = uc.Chrome(options=chrome_options)
 
 	def getLinks(self, subreddit):
+		# Skips subreddit if it starts with # so that they can be commented out in list
+		if subreddit.startswith('#'):
+			return
 		links = []
 
 		subreddit = subreddit.replace('\n', '')
@@ -55,7 +58,7 @@ class Reddit:
 			print('Found ' + str(len(links)) + ' in ' + subreddit + ' sub.')
 			return links
 		else:
-			print('Pulled no links :/')
+			print('Pulled no links from ' + subreddit + ' :/')
 			self.driver.close()
 
 	def scroll_down(self):
@@ -64,7 +67,7 @@ class Reddit:
 		# Get scroll height.
 		last_height = self.driver.execute_script("return document.body.scrollHeight")
 
-		for x in range(0, 200):
+		for x in range(0, 50):
 
 			# Scroll down to the bottom.
 			self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -112,17 +115,13 @@ if __name__ == '__main__':
 
 	for subred in subreddits:
 		subred = subred.replace('\n', '')
-		if not os.path.isdir(dest + subred):
+		if not os.path.isdir(dest + subred) and not subred.startswith('#'):
 			os.mkdir(dest + subred)
 
-	pool = mp.Pool(3)
+	pool = mp.Pool(2)
 
 	print('Opening browsers.\n')
 	scrapedLinks = pool.map(start, subreddits)
-	if scrapedLinks is None:
-		print('Probably broken ip :/')
-		scraper.driver.close()
-		exit()
 
 	for newLink in scrapedLinks:
 		if newLink is not None:
@@ -133,6 +132,10 @@ if __name__ == '__main__':
 	if len(scrapedLinksFinal) > 0:
 		print('Found ' + str(len(scrapedLinksFinal)) + ' links. Now downloading them.')
 		pool.map(curlLinks, scrapedLinksFinal)
+
+	sleep(10)
+	# Wait for everything to end and then kill all the chromes
+	subprocess.call('killall chrome', shell=True)
 
 
 
