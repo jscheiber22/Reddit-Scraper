@@ -55,11 +55,28 @@ class Reddit:
 									links.append(subreddit + '###' + title.group() + '...' + src)
 
 		if len(links) > 0:
-			print('Found ' + str(len(links)) + ' in ' + subreddit + ' sub.')
-			return links
+			print('Found ' + str(len(links)) + ' in ' + subreddit + ' sub. Now downloading them...')
+			self.driver.close()
+			subPool = mp.pool(MAX_CURL_CPU_CORES)
+			subPool.map(self.curlLinks, scrapedLinksFinal)
+			return 1 # self.pullLinks
 		else:
 			print('Pulled no links from ' + subreddit + ' :/')
 			self.driver.close()
+
+
+	def curlLinks(link):
+		subreddit = re.search('.*###', link)
+		if subreddit is not None:
+			subreddit = subreddit.group().replace('###', '')
+			title = re.search('###.*\.\.\.', link)
+			if title is not None:
+				title = title.group().replace('...', '').replace('/', '').replace('###', '')
+				realLink = re.search('\.\.\..*', link)
+				if realLink is not None:
+					realLink = realLink.group().replace('...', '')
+					subprocess.call(['curl', realLink, '-o', dest + subreddit + '/' + title + '.jpg'])
+
 
 	def scroll_down(self):
 		"""A method for scrolling the page."""
@@ -84,24 +101,26 @@ class Reddit:
 
 			last_height = new_height
 
+MAX_SEARCH_CPU_CORES = 2
+MAX_CURL_CPU_CORES = mp.cpu_count() / self.MAX_SEARCH_CPU_CORES # In current case, 3 per pool variable
 
 def start(searchTerm):
 	if searchTerm is not None and searchTerm != '':
 		scraper = Reddit()
 		scrapedLinks = scraper.getLinks(searchTerm)
-		return scrapedLinks
+		return 1
 
-def curlLinks(link):
-	subreddit = re.search('.*###', link)
-	if subreddit is not None:
-		subreddit = subreddit.group().replace('###', '')
-		title = re.search('###.*\.\.\.', link)
-		if title is not None:
-			title = title.group().replace('...', '').replace('/', '').replace('###', '')
-			realLink = re.search('\.\.\..*', link)
-			if realLink is not None:
-				realLink = realLink.group().replace('...', '')
-				subprocess.call(['curl', realLink, '-o', dest + subreddit + '/' + title + '.jpg'])
+# def curlLinks(link):
+# 	subreddit = re.search('.*###', link)
+# 	if subreddit is not None:
+# 		subreddit = subreddit.group().replace('###', '')
+# 		title = re.search('###.*\.\.\.', link)
+# 		if title is not None:
+# 			title = title.group().replace('...', '').replace('/', '').replace('###', '')
+# 			realLink = re.search('\.\.\..*', link)
+# 			if realLink is not None:
+# 				realLink = realLink.group().replace('...', '')
+# 				subprocess.call(['curl', realLink, '-o', dest + subreddit + '/' + title + '.jpg'])
 
 
 if __name__ == '__main__':
@@ -118,20 +137,10 @@ if __name__ == '__main__':
 		if not os.path.isdir(dest + subred) and not subred.startswith('#'):
 			os.mkdir(dest + subred)
 
-	pool = mp.Pool(2)
+	pool = mp.Pool(MAX_SEARCH_CPU_CORES) # 2
 
 	print('Opening browsers.\n')
 	scrapedLinks = pool.map(start, subreddits)
-
-	for newLink in scrapedLinks:
-		if newLink is not None:
-			scrapedLinksFinal += newLink
-
-	pool = mp.Pool(6)
-
-	if len(scrapedLinksFinal) > 0:
-		print('Found ' + str(len(scrapedLinksFinal)) + ' links. Now downloading them.')
-		pool.map(curlLinks, scrapedLinksFinal)
 
 	sleep(10)
 	# Wait for everything to end and then kill all the chromes
