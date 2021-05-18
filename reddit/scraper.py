@@ -57,25 +57,12 @@ class Reddit:
 		if len(links) > 0:
 			print('Found ' + str(len(links)) + ' in ' + subreddit + ' sub. Now downloading them...')
 			self.driver.close()
-			subPool = mp.pool(MAX_CURL_CPU_CORES)
-			subPool.map(self.curlLinks, scrapedLinksFinal)
+			for link in links:
+				curlLinks(link)
 			return 1 # self.pullLinks
 		else:
 			print('Pulled no links from ' + subreddit + ' :/')
 			self.driver.close()
-
-
-	def curlLinks(link):
-		subreddit = re.search('.*###', link)
-		if subreddit is not None:
-			subreddit = subreddit.group().replace('###', '')
-			title = re.search('###.*\.\.\.', link)
-			if title is not None:
-				title = title.group().replace('...', '').replace('/', '').replace('###', '')
-				realLink = re.search('\.\.\..*', link)
-				if realLink is not None:
-					realLink = realLink.group().replace('...', '')
-					subprocess.call(['curl', realLink, '-o', dest + subreddit + '/' + title + '.jpg'])
 
 
 	def scroll_down(self):
@@ -84,7 +71,7 @@ class Reddit:
 		# Get scroll height.
 		last_height = self.driver.execute_script("return document.body.scrollHeight")
 
-		for x in range(0, 50):
+		for x in range(0, 25):
 
 			# Scroll down to the bottom.
 			self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -101,8 +88,8 @@ class Reddit:
 
 			last_height = new_height
 
-MAX_SEARCH_CPU_CORES = 2
-MAX_CURL_CPU_CORES = mp.cpu_count() / self.MAX_SEARCH_CPU_CORES # In current case, 3 per pool variable
+
+MAX_SEARCH_CPU_CORES = 3
 
 def start(searchTerm):
 	if searchTerm is not None and searchTerm != '':
@@ -110,17 +97,18 @@ def start(searchTerm):
 		scrapedLinks = scraper.getLinks(searchTerm)
 		return 1
 
-# def curlLinks(link):
-# 	subreddit = re.search('.*###', link)
-# 	if subreddit is not None:
-# 		subreddit = subreddit.group().replace('###', '')
-# 		title = re.search('###.*\.\.\.', link)
-# 		if title is not None:
-# 			title = title.group().replace('...', '').replace('/', '').replace('###', '')
-# 			realLink = re.search('\.\.\..*', link)
-# 			if realLink is not None:
-# 				realLink = realLink.group().replace('...', '')
-# 				subprocess.call(['curl', realLink, '-o', dest + subreddit + '/' + title + '.jpg'])
+def curlLinks(link):
+	subreddit = re.search('.*###', link)
+	if subreddit is not None:
+		subreddit = subreddit.group().replace('###', '')
+		title = re.search('###.*\.\.\.', link)
+		if title is not None:
+			title = title.group().replace('...', '').replace('/', '').replace('###', '')
+			realLink = re.search('\.\.\..*', link)
+			if realLink is not None:
+				realLink = realLink.group().replace('...', '')
+				print('\nCurling ' + title + ' from ' + subreddit + '.')
+				subprocess.call(['curl', realLink, '-o', dest + subreddit + '/' + title + '.jpg'])
 
 
 if __name__ == '__main__':
