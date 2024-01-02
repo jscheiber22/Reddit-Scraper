@@ -1,5 +1,5 @@
 # Reddit-Scraper
-Scrape your favorite subreddits and download the content for the sake of preservation of the internet. Some certain "rebellions" have caused a lot of folks to start pulling their posts/data off of the site, taking precious history with them. Let's all do our part :).
+Scrape your favorite subreddits and download the content for use in machine learning or mass backup applications. An example of such an application might be if you needed to train a machine vision system to detect guitars, you could bulk download from [r/guitars](https://www.reddit.com/r/guitars/) and have more guitar pictures than you could ever want. Then, you could pull a bunch of images from [r/drums](https://www.reddit.com/r/drums/) and you'd have a bunch of relevant negative images to use in your model.
 
 # Disclaimer
 This app was created ages before I am now writing this, so we're in the same boat for figuring out how it works.
